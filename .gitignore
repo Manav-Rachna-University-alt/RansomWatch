@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual Environment
+.venv/
+venv/
+ENV/
+env/
+
+# Testing & Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Local databases & logs (runtime state)
+data/ransomwatch.db
+data/ransomwatch.db-shm
+data/ransomwatch.db-wal
+data/logs/
+data/backups/
+data/monitored_test_dir/
+data/monitored_test_dir_2/
+
+# OS Specific
+.DS_Store
+Thumbs.db
