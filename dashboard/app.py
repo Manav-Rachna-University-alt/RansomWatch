@@ -918,7 +918,14 @@ elif nav_selection == "🛑 Incident Response & Recovery":
 
     if snapshots:
         df_snaps = pd.DataFrame(snapshots)
-        st.dataframe(df_snaps[["snapshot_name", "created_at", "file_count", "size_mb", "source_directory"]], use_container_width=True)
+        # Ensure standard columns exist with defaults so indexing never fails
+        if "size_mb" not in df_snaps.columns and "size_bytes" in df_snaps.columns:
+            df_snaps["size_mb"] = (df_snaps["size_bytes"] / (1024 * 1024)).round(2)
+        expected_snap_cols = ["snapshot_name", "created_at", "file_count", "size_mb", "source_directory"]
+        for col in expected_snap_cols:
+            if col not in df_snaps.columns:
+                df_snaps[col] = "-"
+        st.dataframe(df_snaps[expected_snap_cols], use_container_width=True)
 
     st.markdown("---")
 
@@ -927,7 +934,9 @@ elif nav_selection == "🛑 Incident Response & Recovery":
     history = fetch_api("/api/response/history?limit=50") or []
     if history:
         df_hist = pd.DataFrame(history)
-        st.dataframe(df_hist[["timestamp", "action_type", "target", "result", "is_simulation", "details"]], use_container_width=True)
+        expected_hist_cols = ["timestamp", "action_type", "target", "result", "is_simulation", "details"]
+        avail_hist_cols = [c for c in expected_hist_cols if c in df_hist.columns]
+        st.dataframe(df_hist[avail_hist_cols] if avail_hist_cols else df_hist, use_container_width=True)
     else:
         st.info("No incident response actions logged yet.")
 

@@ -1586,6 +1586,13 @@ def create_backup_snapshot(request: Optional[BackupCreateRequest] = None) -> Dic
 @router.get("/backups/list", tags=["Backups"], summary="List available snapshots")
 def list_backups() -> List[Dict[str, Any]]:
     """Retrieve list of all available historical snapshot archives."""
+    global _recovery_mgr
+    if _recovery_mgr is not None and hasattr(_recovery_mgr, "list_snapshots"):
+        try:
+            return _recovery_mgr.list_snapshots()
+        except Exception as exc:
+            logger.warning("Delegated RecoveryManager list_snapshots error: %s", exc)
+
     cfg = get_active_config()
     backup_root = Path(getattr(cfg, "BACKUP_DIR", "data/backups") if cfg else "data/backups")
     if not backup_root.exists():
@@ -1593,13 +1600,31 @@ def list_backups() -> List[Dict[str, Any]]:
 
     snapshots = []
     try:
+        import json
         for archive in sorted(backup_root.glob("*.zip"), key=lambda p: p.stat().st_mtime, reverse=True):
             stat = archive.stat()
+            file_count = 0
+            source_dir = "Unknown"
+            try:
+                with zipfile.ZipFile(archive, "r") as zf:
+                    if "manifest.json" in zf.namelist():
+                        manifest_bytes = zf.read("manifest.json")
+                        manifest = json.loads(manifest_bytes.decode("utf-8"))
+                        file_count = manifest.get("file_count", len(zf.namelist()) - 1)
+                        source_dir = manifest.get("source_directory", "Unknown")
+                    else:
+                        file_count = len(zf.namelist())
+            except Exception:
+                pass
+
             snapshots.append({
-                "snapshot_name": archive.stem,
-                "backup_path": str(archive),
+                "snapshot_name": archive.name,
+                "backup_path": str(archive.resolve()),
                 "size_bytes": stat.st_size,
+                "size_mb": round(stat.st_size / (1024 * 1024), 2),
                 "created_at": datetime.fromtimestamp(stat.st_mtime, timezone.utc).isoformat(),
+                "file_count": file_count,
+                "source_directory": source_dir,
             })
     except Exception as exc:
         logger.error("Error listing backups: %s", exc)
