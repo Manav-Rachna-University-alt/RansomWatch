@@ -23,6 +23,52 @@ import plotly.graph_objects as go
 import requests
 import streamlit as st
 
+# -----------------------------------------------------------------------------
+# PyArrow / Streamlit Compatibility Layer
+# Prevents "Error: Unrecognized type: LargeUtf8 (20)" in Streamlit client bundle
+# -----------------------------------------------------------------------------
+try:
+    import pyarrow as pa
+    import streamlit.type_util as _tu
+
+    def _downgrade_large_types(table: pa.Table) -> pa.Table:
+        new_fields = []
+        needs_cast = False
+        for f in table.schema:
+            if f.type == pa.large_string():
+                new_fields.append(pa.field(f.name, pa.string(), nullable=f.nullable, metadata=f.metadata))
+                needs_cast = True
+            elif f.type == pa.large_binary():
+                new_fields.append(pa.field(f.name, pa.binary(), nullable=f.nullable, metadata=f.metadata))
+                needs_cast = True
+            else:
+                new_fields.append(f)
+        if needs_cast:
+            return table.cast(pa.schema(new_fields, metadata=table.schema.metadata))
+        return table
+
+    _orig_pyarrow_table_to_bytes = _tu.pyarrow_table_to_bytes
+
+    def _safe_pyarrow_table_to_bytes(table: pa.Table) -> bytes:
+        table = _downgrade_large_types(table)
+        return _orig_pyarrow_table_to_bytes(table)
+
+    _tu.pyarrow_table_to_bytes = _safe_pyarrow_table_to_bytes
+
+    _orig_data_frame_to_bytes = _tu.data_frame_to_bytes
+
+    def _safe_data_frame_to_bytes(df) -> bytes:
+        try:
+            table = pa.Table.from_pandas(df)
+            table = _downgrade_large_types(table)
+            return _safe_pyarrow_table_to_bytes(table)
+        except Exception:
+            return _orig_data_frame_to_bytes(df)
+
+    _tu.data_frame_to_bytes = _safe_data_frame_to_bytes
+except Exception:
+    pass
+
 from monitoring.entropy import calculate_data_entropy
 
 # Ensure project root is in sys.path
