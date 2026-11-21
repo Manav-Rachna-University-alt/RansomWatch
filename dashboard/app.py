@@ -196,11 +196,11 @@ with st.sidebar:
         [
             "📊 Executive Overview",
             "👁️ Real-Time File Monitor",
+            "🧪 Attack Simulation Center",
             "🚨 Threat Alerts",
             "🧠 ML Isolation Forest",
             "🔍 Threat Intelligence",
             "🛑 Incident Response & Recovery",
-            "🧪 Safe Attack Simulator",
             "⚙️ System Settings",
         ],
         index=0,
@@ -458,96 +458,12 @@ elif nav_selection == "👁️ Real-Time File Monitor":
                     # Canaries will automatically be detected when monitoring starts or refreshed
                     st.info(f"Canary decoys deployed into: `{target_directory}`")
 
-    # User Inputted File Inspector & Live Injection
-    with st.expander("📤 Inspect & Inject User-Inputted File", expanded=True):
-        st.markdown(
-            "Upload any file from your computer (documents, images, scripts, archives, or test binaries) to "
-            "calculate its **Shannon Entropy**, compute **cryptographic hashes**, check against **Threat Intel**, "
-            "or inject it into the monitored directory to test the detection engine."
-        )
-
-        uploaded_file = st.file_uploader(
-            "Select or drop a file to inspect",
-            type=None,
-            help="Choose any file. The contents are analyzed locally in-memory.",
-        )
-
-        if uploaded_file is not None:
-            file_bytes = uploaded_file.getvalue()
-            file_name = uploaded_file.name
-            file_size_bytes = len(file_bytes)
-            file_ext = Path(file_name).suffix.lower()
-
-            # 1. Compute Shannon Entropy
-            entropy_val = calculate_data_entropy(file_bytes)
-
-            # 2. Compute Hashes
-            md5_hash = hashlib.md5(file_bytes).hexdigest()
-            sha256_hash = hashlib.sha256(file_bytes).hexdigest()
-
-            # 3. Threat Intel Check
-            ti_check = fetch_api("/api/threat-intel/check", method="POST", payload={"value": md5_hash})
-            ti_matched = ti_check and ti_check.get("found", False)
-
-            # Visual Display
-            m_col1, m_col2, m_col3, m_col4 = st.columns(4)
-            with m_col1:
-                st.metric("File Name", file_name)
-            with m_col2:
-                st.metric("Size", f"{file_size_bytes:,} bytes", f"{file_size_bytes / 1024:.2f} KB")
-            with m_col3:
-                entropy_label = (
-                    "CRITICAL / Encrypted" if entropy_val >= 7.0
-                    else "High / Compressed" if entropy_val >= 6.0
-                    else "Moderate" if entropy_val >= 4.0
-                    else "Low / Plaintext"
-                )
-                st.metric("Shannon Entropy", f"{entropy_val:.4f} / 8.0", delta=entropy_label)
-            with m_col4:
-                st.metric(
-                    "Threat Intel Match",
-                    "⚠️ MATCH FOUND" if ti_matched else "CLEAN",
-                    delta="Malicious IOC" if ti_matched else "No IOC Hit",
-                    delta_color="inverse" if ti_matched else "normal",
-                )
-
-            # Entropy Interpretation Bar
-            st.markdown(f"**Entropy Analysis:** `{entropy_val:.4f}` bits/byte")
-            if entropy_val >= 7.0:
-                st.error("🚨 High Entropy Alert: Content exhibits randomness typical of cryptographic ciphertexts or packed malware.")
-            elif entropy_val >= 6.0:
-                st.warning("⚠️ Elevated Entropy: Characteristic of compressed archives (.zip, .gz, .png, .docx).")
-            else:
-                st.success("✅ Normal Entropy: Plaintext or standard structured binary format.")
-
-            st.markdown("##### 🔑 Cryptographic Fingerprints & Metadata")
-            st.code(f"MD5:    {md5_hash}\nSHA256: {sha256_hash}\nType:   {file_ext or 'no extension'}", language="text")
-
-            # Injection Actions
-            act_col1, act_col2 = st.columns(2)
-            with act_col1:
-                if st.button("📥 Drop File into Monitored Directory", use_container_width=True):
-                    dest_dir = Path(target_directory or (PROJECT_ROOT / "data" / "monitored_test_dir"))
-                    dest_dir.mkdir(parents=True, exist_ok=True)
-                    dest_path = dest_dir / file_name
-                    dest_path.write_bytes(file_bytes)
-                    st.success(f"File saved to `{dest_path}`! Watchdog monitor will record this creation event.")
-                    time.sleep(0.5)
-                    st.rerun()
-
-            with act_col2:
-                if st.button("🔒 Simulate Ransomware Encryption on this File", use_container_width=True):
-                    dest_dir = Path(target_directory or (PROJECT_ROOT / "data" / "monitored_test_dir"))
-                    dest_dir.mkdir(parents=True, exist_ok=True)
-                    # Write high-entropy scrambled ciphertext with .locked extension
-                    encrypted_name = f"{file_name}.locked"
-                    encrypted_path = dest_dir / encrypted_name
-                    fake_cipher = os.urandom(max(file_size_bytes, 1024))
-                    encrypted_path.write_bytes(fake_cipher)
-                    st.error(f"Simulated encrypted copy created: `{encrypted_path}` (Entropy ~8.0, extension `.locked`)")
-                    time.sleep(0.5)
-                    fetch_api("/api/detection/analyze")
-                    st.rerun()
+    # Simulation Callout Card
+    st.info(
+        "💡 **Looking to test or demonstrate ransomware attacks?** All single-file inspections, custom file uploads, "
+        "high-entropy encryption simulations, and multi-file benchmark attacks have been consolidated into the dedicated "
+        "**`🧪 Attack Simulation Center`** in the navigation menu."
+    )
 
     # Live Event Feed & Charts
     events_resp = fetch_api("/api/monitor/events?limit=100")
@@ -988,63 +904,103 @@ elif nav_selection == "🛑 Incident Response & Recovery":
 
 
 # -----------------------------------------------------------------------------
-# PAGE 7: SAFE ATTACK SIMULATOR
+# PAGE 7: ATTACK SIMULATION CENTER (UNIFIED SUITE)
 # -----------------------------------------------------------------------------
-elif nav_selection == "🧪 Safe Attack Simulator":
-    st.markdown('<div class="main-title">Controlled Ransomware Simulation Sandbox</div>', unsafe_allow_html=True)
+elif nav_selection == "🧪 Attack Simulation Center":
+    st.markdown('<div class="main-title">🧪 Ransomware Attack Simulation Center</div>', unsafe_allow_html=True)
     st.markdown(
-        '<div class="sub-title">Test RansomWatch detection in an isolated, benign test folder without endangering real files.</div>',
+        '<div class="sub-title">All-in-one testing suite: inspect files, simulate custom and multi-file ransomware campaigns, observe real-time detection scoring, and trigger automated containment.</div>',
         unsafe_allow_html=True,
     )
 
     test_sandbox = PROJECT_ROOT / "data" / "monitored_test_dir"
     test_sandbox.mkdir(parents=True, exist_ok=True)
 
-    st.markdown(
-        f"""
-        <div class="safety-banner">
-            <strong>🧪 Isolated Sandbox:</strong> <code>{test_sandbox}</code><br>
-            All generated dummy files remain inside this test folder.
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    # Sandbox Status & Utility Bar
+    sandbox_files = [f for f in test_sandbox.iterdir() if f.is_file()]
+    sandbox_size_bytes = sum(f.stat().st_size for f in sandbox_files)
 
-    tab_custom, tab_batch = st.tabs([
-        "🎯 Choose Your Own File to Attack",
-        "⚡ Automated Benchmark Batch Scenarios",
+    s_col1, s_col2, s_col3 = st.columns([2, 1, 1])
+    with s_col1:
+        st.markdown(
+            f"""
+            <div class="safety-banner" style="margin-bottom: 0px;">
+                <strong>🛡️ Monitored Sandbox Directory:</strong> <code>{test_sandbox}</code><br>
+                <small style="color: #64748B;">Files: <b>{len(sandbox_files)}</b> | Total Size: <b>{sandbox_size_bytes / 1024:.2f} KB</b> | Safe Isolation: <b>Active</b></small>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    with s_col2:
+        if st.button("📄 Populate 5 Clean Files", use_container_width=True, help="Create realistic benign documents to attack"):
+            samples = {
+                "financial_report_2026.docx": "Quarterly financial summary and audit statement for executive review.",
+                "customer_database.csv": "id,name,email,account_balance\n1,Alice,alice@example.com,4500\n2,Bob,bob@example.com,12000",
+                "employee_roster.xlsx": "Department payroll records and salary verification for internal compliance.",
+                "company_credentials.json": '{"service": "internal_portal", "user": "security_admin", "status": "active"}',
+                "executive_brief.txt": "Project RansomWatch architectural blueprint and threat mitigation strategy.",
+            }
+            for s_name, s_content in samples.items():
+                (test_sandbox / s_name).write_text(s_content, encoding="utf-8")
+            st.success("Populated 5 clean sample files into sandbox!")
+            time.sleep(0.5)
+            st.rerun()
+
+    with s_col3:
+        if st.button("🧹 Reset / Clean Sandbox", use_container_width=True, help="Delete all test files in the sandbox"):
+            cleaned_count = 0
+            for item in test_sandbox.iterdir():
+                if item.is_file() and not item.name.startswith("canary_"):
+                    try:
+                        item.unlink()
+                        cleaned_count += 1
+                    except Exception:
+                        pass
+            st.info(f"Cleaned {cleaned_count} test files from sandbox.")
+            time.sleep(0.5)
+            st.rerun()
+
+    st.markdown("---")
+
+    # Three Unified Modes
+    tab_single, tab_batch, tab_contain = st.tabs([
+        "🎯 1. Single-File Targeted Attack & Inspection",
+        "⚡ 2. Automated Multi-File Attack Campaigns",
+        "🛡️ 3. Immediate Containment & Response Testing",
     ])
 
-    with tab_custom:
-        st.markdown("##### 📁 Select Target File for Custom Ransomware Simulation")
-        st.markdown("You can upload a custom file from your computer, or pick any file currently in the sandbox.")
+    # -------------------------------------------------------------------------
+    # TAB 1: SINGLE-FILE TARGETED ATTACK & INSPECTION
+    # -------------------------------------------------------------------------
+    with tab_single:
+        st.markdown("##### 📁 Inspect & Attack an Individual File")
+        st.markdown("Upload any custom file or pick an existing file from the sandbox to calculate its entropy, check Threat Intel, and execute targeted ransomware attacks.")
 
         file_source = st.radio(
-            "Target File Source",
-            ["📤 Upload a custom file from my computer", "🔍 Pick an existing file in the sandbox"],
+            "File Source",
+            ["📤 Upload a custom file from my computer", "🔍 Select an existing file from the sandbox"],
             horizontal=True,
         )
 
         chosen_file_path: Optional[Path] = None
+        orig_bytes = b""
         orig_entropy = 0.0
 
         if "Upload" in file_source:
             up_file = st.file_uploader(
-                "Upload the file you wish to target",
+                "Upload a file to inspect and attack",
                 type=None,
-                key="sim_user_file_uploader",
+                key="unified_sim_file_uploader",
                 help="Upload any file (e.g. document, spreadsheet, script, image).",
             )
             if up_file is not None:
-                content_bytes = up_file.getvalue()
+                orig_bytes = up_file.getvalue()
                 chosen_name = up_file.name
                 dest_file = test_sandbox / chosen_name
-                dest_file.write_bytes(content_bytes)
+                dest_file.write_bytes(orig_bytes)
                 chosen_file_path = dest_file
-                orig_entropy = calculate_data_entropy(content_bytes)
-                st.success(f"Loaded `{chosen_name}` ({len(content_bytes):,} bytes | Entropy: {orig_entropy:.2f})")
+                orig_entropy = calculate_data_entropy(orig_bytes)
         else:
-            # Enumerate existing files in sandbox
             existing_files = [f for f in sorted(test_sandbox.iterdir()) if f.is_file()]
             if existing_files:
                 file_map = {f.name: f for f in existing_files}
@@ -1054,47 +1010,81 @@ elif nav_selection == "🧪 Safe Attack Simulator":
                 )
                 chosen_file_path = file_map[selected_name]
                 try:
-                    f_bytes = chosen_file_path.read_bytes()
-                    orig_entropy = calculate_data_entropy(f_bytes)
-                    st.info(f"Selected: `{selected_name}` ({len(f_bytes):,} bytes | Entropy: {orig_entropy:.2f})")
+                    orig_bytes = chosen_file_path.read_bytes()
+                    orig_entropy = calculate_data_entropy(orig_bytes)
                 except Exception:
+                    orig_bytes = b""
                     orig_entropy = 0.0
             else:
-                st.warning("No files currently found in the sandbox. Switch to 'Upload' above or create sample files first.")
+                st.warning("No files found in the sandbox. Click '📄 Populate 5 Clean Files' above or upload one.")
 
-        if chosen_file_path is not None and chosen_file_path.exists():
+        if chosen_file_path is not None and chosen_file_path.exists() and len(orig_bytes) > 0:
+            file_name = chosen_file_path.name
+            file_size_bytes = len(orig_bytes)
+            file_ext = chosen_file_path.suffix.lower()
+
+            # Pre-Attack Cryptographic Hashes & Threat Intel
+            md5_hash = hashlib.md5(orig_bytes).hexdigest()
+            sha256_hash = hashlib.sha256(orig_bytes).hexdigest()
+            ti_check = fetch_api("/api/threat-intel/check", method="POST", payload={"value": md5_hash})
+            ti_matched = ti_check and ti_check.get("found", False)
+
+            # Pre-Attack Metrics Card
+            st.markdown("#### 🔍 Pre-Attack Diagnostics & Fingerprints")
+            m1, m2, m3, m4 = st.columns(4)
+            with m1:
+                st.metric("Target File", file_name)
+            with m2:
+                st.metric("File Size", f"{file_size_bytes:,} bytes", f"{file_size_bytes / 1024:.2f} KB")
+            with m3:
+                entropy_label = (
+                    "CRITICAL / Encrypted" if orig_entropy >= 7.0
+                    else "High / Compressed" if orig_entropy >= 6.0
+                    else "Moderate" if orig_entropy >= 4.0
+                    else "Low / Plaintext"
+                )
+                st.metric("Shannon Entropy", f"{orig_entropy:.4f} / 8.0", delta=entropy_label)
+            with m4:
+                st.metric(
+                    "Threat Intel Match",
+                    "⚠️ IOC HIT" if ti_matched else "CLEAN",
+                    delta="Malicious Signature" if ti_matched else "No IOC Match",
+                    delta_color="inverse" if ti_matched else "normal",
+                )
+
+            st.code(f"MD5:    {md5_hash}\nSHA256: {sha256_hash}\nType:   {file_ext or 'no extension'}", language="text")
+
+            # Attack Launch Configuration
             st.markdown("---")
-            st.markdown(f"#### ⚔️ Choose Attack to Execute on `'{chosen_file_path.name}'`")
-
-            attack_col1, attack_col2 = st.columns(2)
-            with attack_col1:
+            st.markdown(f"#### ⚔️ Choose Attack Vector on `'{file_name}'`")
+            atk_col1, atk_col2 = st.columns([2, 1])
+            with atk_col1:
                 attack_type = st.radio(
-                    "Attack Simulation Type",
+                    "Ransomware Attack Method",
                     [
-                        "1. 🔒 Full Ransomware Encryption Burst (High Entropy + Extension Swap)",
-                        "2. 🏷️ Extension Tampering Only (Rename to .locked without altering bytes)",
-                        "3. ⚡ High-Entropy Ciphertext Overwrite (Keep same extension, inject random ciphertext)",
-                        "4. 💥 Rapid Modification Storm (20 rapid writes to this file in 1 second)",
+                        "1. 🔒 Full Ransomware Encryption (High-Entropy Ciphertext + Extension Swap)",
+                        "2. 🏷️ Extension Hijacking Only (Rename to .locked without altering bytes)",
+                        "3. ⚡ High-Entropy Overwrite (Scramble bytes in-place, preserve original extension)",
+                        "4. 💥 Rapid Modification Storm (25 consecutive write bursts in 1 second)",
                     ],
                 )
-            with attack_col2:
+            with atk_col2:
                 ext_choice = st.selectbox(
                     "Ransomware Extension to Append",
-                    [".locked", ".crypto", ".encrypted", ".wncry", ".blackcat", ".revil", ".ransom"],
+                    [".locked", ".crypto", ".wncry", ".blackcat", ".revil", ".encrypted", ".ransom"],
                     index=0,
                 )
-                st.caption(f"Target file: `{chosen_file_path.name}`")
-                st.caption(f"Original Entropy: `{orig_entropy:.2f}` / 8.0")
+                st.caption(f"Baseline Entropy: **{orig_entropy:.2f}**")
+                st.caption(f"Target Path: `{chosen_file_path.name}`")
 
-            if st.button(f"🚨 Launch Attack on '{chosen_file_path.name}'", type="primary", use_container_width=True):
-                with st.spinner(f"Simulating attack on {chosen_file_path.name}..."):
-                    orig_bytes = chosen_file_path.read_bytes()
-                    orig_name = chosen_file_path.name
+            launch_btn = st.button(f"🚨 Launch Attack on '{file_name}'", type="primary", use_container_width=True)
+            if launch_btn:
+                with st.spinner(f"Simulating attack on {file_name}..."):
+                    new_entropy = orig_entropy
 
                     if "1." in attack_type:
-                        # Full ransomware encryption: high entropy bytes + extension
-                        encrypted_path = chosen_file_path.parent / f"{orig_name}{ext_choice}"
-                        cipher_bytes = os.urandom(max(len(orig_bytes), 2048))
+                        encrypted_path = chosen_file_path.parent / f"{file_name}{ext_choice}"
+                        cipher_bytes = os.urandom(max(file_size_bytes, 2048))
                         encrypted_path.write_bytes(cipher_bytes)
                         try:
                             chosen_file_path.unlink()
@@ -1103,94 +1093,178 @@ elif nav_selection == "🧪 Safe Attack Simulator":
                         new_entropy = calculate_data_entropy(cipher_bytes)
                         st.error(
                             f"Simulated full encryption attack! Original file encrypted to `{encrypted_path.name}`. "
-                            f"Entropy jumped from {orig_entropy:.2f} ➔ {new_entropy:.2f}."
+                            f"Entropy surged from {orig_entropy:.2f} ➔ {new_entropy:.2f} bits/byte."
                         )
 
                     elif "2." in attack_type:
-                        # Extension swap only
-                        renamed_path = chosen_file_path.parent / f"{orig_name}{ext_choice}"
+                        renamed_path = chosen_file_path.parent / f"{file_name}{ext_choice}"
                         chosen_file_path.rename(renamed_path)
-                        st.warning(f"File renamed to `{renamed_path.name}` without altering contents.")
+                        st.warning(f"Simulated extension swap: `{file_name}` ➔ `{renamed_path.name}`.")
 
                     elif "3." in attack_type:
-                        # Content overwrite with high entropy
-                        cipher_bytes = os.urandom(max(len(orig_bytes), 2048))
+                        cipher_bytes = os.urandom(max(file_size_bytes, 2048))
                         chosen_file_path.write_bytes(cipher_bytes)
                         new_entropy = calculate_data_entropy(cipher_bytes)
                         st.error(
-                            f"Overwrote `{orig_name}` with random ciphertext! "
-                            f"Entropy shifted from {orig_entropy:.2f} ➔ {new_entropy:.2f}."
+                            f"Overwrote `{file_name}` in-place with random ciphertext! "
+                            f"Entropy jumped from {orig_entropy:.2f} ➔ {new_entropy:.2f}."
                         )
 
                     elif "4." in attack_type:
-                        # Rapid write burst
-                        for burst_i in range(20):
+                        for burst_i in range(25):
                             chosen_file_path.write_text(f"RAPID BURST OVERWRITE #{burst_i} at {time.time()}\n", encoding="utf-8")
-                        st.warning(f"Executed 20 rapid modification bursts on `{orig_name}`.")
+                        st.warning(f"Executed 25 rapid modification write bursts on `{file_name}`.")
 
                     time.sleep(1)
                     detect_res = fetch_api("/api/detection/analyze") or {}
-                    st.success("Attack simulation completed!")
+                    st.success("Attack executed! Watchdog captured file events and detection engine evaluated risk.")
 
                     if detect_res:
-                        score = detect_res.get("risk_score", 0)
+                        score = detect_res.get("risk_score", 0.0)
                         sev = detect_res.get("severity", "low")
                         reasons = detect_res.get("reasons", [])
-                        st.markdown(f"### 🛡️ Detection Engine Result: Risk Score **{score:.1f}/100** ({sev.upper()})")
-                        for r in reasons:
-                            st.write(f"- ⚠️ {r}")
+                        is_threat = detect_res.get("is_ransomware", False)
 
+                        st.markdown("---")
+                        st.markdown("### 🛡️ Immediate Detection Engine Evaluation")
+                        r_col1, r_col2 = st.columns([1, 2])
+                        with r_col1:
+                            st.metric("Computed Risk Score", f"{score:.1f} / 100", delta=sev.upper(), delta_color="inverse" if is_threat else "normal")
+                            st.markdown(f"**Verdict:** {'🚨 RANSOMWARE DETECTED' if is_threat else '✅ BENIGN / SAFE'}")
+                        with r_col2:
+                            st.markdown("**Triggered Detection Reason Codes:**")
+                            if reasons:
+                                for r in reasons:
+                                    st.write(f"- ⚠️ {r}")
+                            else:
+                                st.write("- None (activity within normal baseline parameters)")
+
+    # -------------------------------------------------------------------------
+    # TAB 2: AUTOMATED MULTI-FILE ATTACK CAMPAIGNS
+    # -------------------------------------------------------------------------
     with tab_batch:
-        st.markdown("##### ⚡ Automated Multi-File Batch Scenarios")
-        st.caption("Generate multi-file bursts to test volumetric detection rules.")
-        sim_type = st.radio(
-            "Select Benchmark Batch Scenario",
+        st.markdown("##### ⚡ Automated Multi-File Attack Campaigns")
+        st.caption("Trigger realistic multi-file ransomware campaigns to test volumetric heuristics, extension pattern clustering, and Shannon entropy spikes.")
+
+        scenario_choice = st.radio(
+            "Select Attack Campaign Scenario",
             [
-                "1. Benign Normal Activity (Low entropy, normal file edits)",
-                "2. Rapid Mass Modification (Burst of file updates)",
-                "3. Ransomware Extension Swapping (.locked, .encrypted)",
-                "4. High-Entropy Mass Encryption Burst (Simulated CryptoLocker / LockBit)",
-                "5. Canary Decoy File Tampering (Direct tripwire trigger)",
+                "1. 🟢 Benign Normal Baseline (3 normal documents created and saved)",
+                "2. 🟡 Rapid Modification Storm (25 rapid updates across multiple files)",
+                "3. 🟠 Extension Hijacking Wave (15 files renamed to .locked extension)",
+                "4. 🔴 High-Entropy Mass Encryption Burst (20 files encrypted with random ciphertext)",
+                "5. 🐤 Canary Decoy Tripwire Tampering (Direct modification of placed canary decoy)",
+                "6. 💀 WannaCry / LockBit Combined Multi-Vector Attack (Mass encryption + .wncry extension + high entropy)",
             ],
         )
 
-        if st.button("🚀 Execute Batch Benchmark Simulation", type="secondary", use_container_width=True):
-            with st.spinner("Executing simulation..."):
-                if "1." in sim_type:
+        if st.button("🚀 Execute Attack Campaign", type="primary", use_container_width=True):
+            with st.spinner("Executing simulated ransomware campaign..."):
+                if "1." in scenario_choice:
                     for i in range(3):
                         f = test_sandbox / f"normal_report_{i}.txt"
-                        f.write_text(f"This is normal benign text content #{i} at {time.time()}", encoding="utf-8")
-                    st.success("Generated 3 normal text file operations.")
+                        f.write_text(f"This is normal benign text content #{i} created at {time.time()}", encoding="utf-8")
+                    st.success("Generated 3 normal benign file operations.")
 
-                elif "2." in sim_type:
+                elif "2." in scenario_choice:
                     for i in range(25):
                         f = test_sandbox / f"data_record_{i}.txt"
                         f.write_text(f"Rapid update record #{i} timestamp={time.time()}", encoding="utf-8")
-                    st.warning("Generated 25 rapid file operations. Check File Monitor!")
+                    st.warning("Generated 25 rapid file modification operations (High I/O velocity).")
 
-                elif "3." in sim_type:
+                elif "3." in scenario_choice:
                     for i in range(15):
-                        old_f = test_sandbox / f"budget_{i}.xlsx"
-                        old_f.write_text(f"Budget content #{i}", encoding="utf-8")
-                        new_f = test_sandbox / f"budget_{i}.xlsx.locked"
+                        old_f = test_sandbox / f"budget_sheet_{i}.xlsx"
+                        old_f.write_text(f"Budget data #{i}", encoding="utf-8")
+                        new_f = test_sandbox / f"budget_sheet_{i}.xlsx.locked"
                         old_f.rename(new_f)
-                    st.error("Simulated 15 file extension renames to `.locked`. Detection engine should flag this!")
+                    st.error("Simulated 15 file extension renames to `.locked`!")
 
-                elif "4." in sim_type:
+                elif "4." in scenario_choice:
                     import os as system_os
                     for i in range(20):
-                        f = test_sandbox / f"encrypted_doc_{i}.crypto"
+                        f = test_sandbox / f"encrypted_asset_{i}.crypto"
                         f.write_bytes(system_os.urandom(2048))
-                    st.error("Generated 20 high-entropy simulated encrypted files (Entropy ~ 8.0). Check Alerts!")
+                    st.error("Generated 20 high-entropy simulated encrypted files (Entropy ~ 8.0 bits/byte).")
 
-                elif "5." in sim_type:
+                elif "5." in scenario_choice:
                     canary_hit = test_sandbox / "confidential_financials_decoy.docx"
-                    canary_hit.write_text("TRIPWIRE CANARY ACCESSED", encoding="utf-8")
-                    st.error("Canary decoy modified! Tripwire alert should be generated.")
+                    canary_hit.write_text("TRIPWIRE CANARY TAMPERED BY RANSOMWARE", encoding="utf-8")
+                    st.error("Canary decoy file tampered! Direct tripwire triggered.")
+
+                elif "6." in scenario_choice:
+                    import os as system_os
+                    for i in range(20):
+                        f = test_sandbox / f"wannacry_target_{i}.wncry"
+                        f.write_bytes(system_os.urandom(2048))
+                    st.error("Simulated full WannaCry outbreak: 20 high-entropy files with `.wncry` extension generated!")
 
                 time.sleep(1)
-                fetch_api("/api/detection/analyze")
-                st.success("Batch simulation finished! Check 'Threat Alerts' or 'Executive Overview'.")
+                detect_res = fetch_api("/api/detection/analyze") or {}
+                st.success("Attack campaign finished! Real-time evaluation results below.")
+
+                if detect_res:
+                    score = detect_res.get("risk_score", 0.0)
+                    sev = detect_res.get("severity", "low")
+                    reasons = detect_res.get("reasons", [])
+                    is_threat = detect_res.get("is_ransomware", False)
+
+                    st.markdown("---")
+                    st.markdown("### 🛡️ Real-Time Campaign Detection Result")
+                    c_res1, c_res2 = st.columns([1, 2])
+                    with c_res1:
+                        st.metric("Computed Risk Score", f"{score:.1f} / 100", delta=sev.upper(), delta_color="inverse" if is_threat else "normal")
+                        st.markdown(f"**Verdict:** {'🚨 RANSOMWARE OUTBREAK' if is_threat else '✅ BENIGN / SAFE'}")
+                    with c_res2:
+                        st.markdown("**Engine Triggered Reasons:**")
+                        if reasons:
+                            for r in reasons:
+                                st.write(f"- ⚠️ {r}")
+                        else:
+                            st.write("- None (activity within normal baseline parameters)")
+
+    # -------------------------------------------------------------------------
+    # TAB 3: IMMEDIATE CONTAINMENT & RESPONSE TESTING
+    # -------------------------------------------------------------------------
+    with tab_contain:
+        st.markdown("##### 🛡️ Test Automated Incident Containment")
+        st.markdown(
+            "Observe Phase 3 (`CONTAIN`) of the 5-phase Incident Response pipeline. "
+            "Containment stops the blast radius by isolating the infected directory and logging forensic metadata."
+        )
+
+        st.markdown(
+            """
+            <div class="safety-banner">
+                <strong>🔒 Safety Guardrail Status:</strong> <code>Simulation Mode: ON (Safe)</code><br>
+                Containment is non-destructive and records cryptographic audit logs to SQLite without crashing system processes.
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        c_btn1, c_btn2 = st.columns(2)
+        with c_btn1:
+            if st.button("🛡️ Execute Emergency Containment on Sandbox", type="primary", use_container_width=True):
+                payload = {
+                    "action_type": "isolate_directory",
+                    "target": str(test_sandbox),
+                    "details": "Manual emergency containment executed from Attack Simulation Center",
+                }
+                res = fetch_api("/api/response/execute", method="POST", payload=payload)
+                if res:
+                    st.success(f"Containment executed successfully! Incident ID: `{res.get('incident_id', 'IR-SIM')}`")
+                    st.write(f"**Action:** `{res.get('action')}` | **Target:** `{res.get('target')}`")
+                    st.write(f"**Simulation Mode:** `{res.get('is_simulation')}` | **Audit Log ID:** `#{res.get('response_log_id')}`")
+                else:
+                    st.info("Containment signal sent. Check Incident Response page for full audit trail.")
+
+        with c_btn2:
+            st.markdown("##### 💾 Post-Containment Recovery")
+            st.markdown("After containment isolates the blast radius, clean pre-attack snapshots can be restored.")
+            backup_resp = fetch_api("/api/backups/list")
+            snaps = backup_resp if isinstance(backup_resp, list) else []
+            st.write(f"**Available Clean Snapshots:** {len(snaps)} archives in repository")
 
 
 # -----------------------------------------------------------------------------
