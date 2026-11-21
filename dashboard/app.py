@@ -89,27 +89,125 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# Custom Styling
-st.markdown(
-    """
+# -----------------------------------------------------------------------------
+# Theme Setup & Dynamic CSS (Dark / Light Mode)
+# -----------------------------------------------------------------------------
+is_dark = "Light" not in st.session_state.get("app_display_theme", "Dark")
+plotly_template = "plotly_dark" if is_dark else "plotly_white"
+
+if is_dark:
+    theme_css = """
     <style>
+    /* Dark Theme */
+    .stApp {
+        background-color: #0E1117;
+        color: #F1F5F9;
+    }
+    [data-testid="stSidebar"] {
+        background-color: #161B22;
+        border-right: 1px solid #30363D;
+    }
+    [data-testid="stHeader"] {
+        background-color: rgba(14, 17, 23, 0.85);
+    }
     .main-title {
         font-size: 2.2rem;
         font-weight: 700;
-        color: #1E293B;
+        color: #F8FAFC !important;
         margin-bottom: 0.2rem;
     }
     .sub-title {
-        color: #64748B;
+        color: #94A3B8 !important;
         font-size: 1.0rem;
         margin-bottom: 1.5rem;
     }
     .metric-card {
+        background-color: #1F2937;
+        border: 1px solid #374151;
+        border-radius: 8px;
+        padding: 1rem;
+        text-align: center;
+        color: #F8FAFC;
+    }
+    .safety-banner {
+        background-color: #1E293B;
+        border-left: 4px solid #3B82F6;
+        padding: 12px;
+        border-radius: 4px;
+        margin-bottom: 15px;
+        color: #E2E8F0;
+    }
+    .badge-critical {
+        background-color: #7F1D1D;
+        color: #FECACA;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-weight: 600;
+    }
+    .badge-high {
+        background-color: #7C2D12;
+        color: #FED7AA;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-weight: 600;
+    }
+    .badge-medium {
+        background-color: #78350F;
+        color: #FDE68A;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-weight: 600;
+    }
+    .badge-low {
+        background-color: #14532D;
+        color: #BBF7D0;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-weight: 600;
+    }
+    </style>
+    """
+else:
+    theme_css = """
+    <style>
+    /* Light Theme */
+    .stApp {
         background-color: #F8FAFC;
+        color: #0F172A;
+    }
+    [data-testid="stSidebar"] {
+        background-color: #FFFFFF;
+        border-right: 1px solid #E2E8F0;
+    }
+    [data-testid="stHeader"] {
+        background-color: rgba(248, 250, 252, 0.85);
+    }
+    .main-title {
+        font-size: 2.2rem;
+        font-weight: 700;
+        color: #0F172A !important;
+        margin-bottom: 0.2rem;
+    }
+    .sub-title {
+        color: #475569 !important;
+        font-size: 1.0rem;
+        margin-bottom: 1.5rem;
+    }
+    .metric-card {
+        background-color: #FFFFFF;
         border: 1px solid #E2E8F0;
         border-radius: 8px;
         padding: 1rem;
         text-align: center;
+        color: #0F172A;
+    }
+    .safety-banner {
+        background-color: #EFF6FF;
+        border-left: 4px solid #3B82F6;
+        padding: 12px;
+        border-radius: 4px;
+        margin-bottom: 15px;
+        color: #1E293B;
     }
     .badge-critical {
         background-color: #FEE2E2;
@@ -139,17 +237,10 @@ st.markdown(
         border-radius: 4px;
         font-weight: 600;
     }
-    .safety-banner {
-        background-color: #EFF6FF;
-        border-left: 4px solid #3B82F6;
-        padding: 12px;
-        border-radius: 4px;
-        margin-bottom: 15px;
-    }
     </style>
-    """,
-    unsafe_allow_html=True,
-)
+    """
+
+st.markdown(theme_css, unsafe_allow_html=True)
 
 
 # -----------------------------------------------------------------------------
@@ -189,6 +280,16 @@ def check_api_health() -> Dict[str, Any]:
 with st.sidebar:
     st.markdown("## 🛡️ **RansomWatch**")
     st.markdown("*Behaviour-Based Ransomware Detection & Containment*")
+
+    # Dark / Light Theme Toggle
+    theme_choice = st.radio(
+        "Theme Mode",
+        ["🌙 Dark Mode", "☀️ Light Mode"],
+        index=0 if is_dark else 1,
+        horizontal=True,
+        label_visibility="collapsed",
+        key="app_display_theme",
+    )
     st.markdown("---")
 
     nav_selection = st.radio(
@@ -321,6 +422,7 @@ if nav_selection == "📊 Executive Overview":
                     ))
 
             fig.update_layout(
+                template=plotly_template,
                 title="File System Operations Over Time",
                 barmode="stack",
                 xaxis_title="Time (HH:MM)",
@@ -488,7 +590,7 @@ elif nav_selection == "👁️ Real-Time File Monitor":
                     "moved": "#F59E0B",
                 },
             )
-            fig_pie.update_layout(height=280, margin=dict(t=10, b=10, l=10, r=10))
+            fig_pie.update_layout(template=plotly_template, height=280, margin=dict(t=10, b=10, l=10, r=10))
             st.plotly_chart(fig_pie, use_container_width=True)
 
         with col_entropy:
@@ -503,7 +605,7 @@ elif nav_selection == "👁️ Real-Time File Monitor":
                     color_discrete_sequence=["#6366F1"],
                 )
                 fig_hist.add_vline(x=7.0, line_dash="dash", line_color="red", annotation_text="High Entropy Threshold (7.0)")
-                fig_hist.update_layout(height=280, margin=dict(t=30, b=10, l=10, r=10))
+                fig_hist.update_layout(template=plotly_template, height=280, margin=dict(t=30, b=10, l=10, r=10))
                 st.plotly_chart(fig_hist, use_container_width=True)
             else:
                 st.caption("No file entropy calculations logged yet.")
@@ -693,7 +795,7 @@ elif nav_selection == "🧠 ML Isolation Forest":
         color_continuous_scale="Viridis",
         title="Behavioural Feature Sensitivity in Anomaly Detection",
     )
-    fig_bar.update_layout(height=360)
+    fig_bar.update_layout(template=plotly_template, height=360)
     st.plotly_chart(fig_bar, use_container_width=True)
 
     # Anomaly Prediction Tester
